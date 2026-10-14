@@ -15,6 +15,16 @@
     body{margin:0;color:var(--text);background:radial-gradient(ellipse at 12% 4%,rgba(48,61,160,.3),transparent 35%),radial-gradient(ellipse at 91% 24%,rgba(109,43,168,.24),transparent 34%),radial-gradient(ellipse at 54% 82%,rgba(34,49,132,.18),transparent 36%),var(--bg);font:16px/1.7 "DM Sans",sans-serif;overflow-x:hidden}
     body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.8;background-image:radial-gradient(1.3px 1.3px at 10% 20%,#ffe6a1 99%,transparent),radial-gradient(1px 1px at 73% 14%,#fff1c7 99%,transparent),radial-gradient(1.8px 1.8px at 86% 63%,#ffd875 99%,transparent),radial-gradient(1px 1px at 36% 72%,#f5dca1 99%,transparent),radial-gradient(1.4px 1.4px at 61% 44%,#fff4d5 99%,transparent),radial-gradient(1px 1px at 21% 88%,#d7c1ff 99%,transparent),radial-gradient(1.7px 1.7px at 95% 8%,#ffe5a0 99%,transparent);background-size:350px 350px,440px 440px,520px 520px,390px 390px,470px 470px,530px 530px,600px 600px}
     a{color:inherit;text-decoration:none}button{font:inherit}.wrap{width:min(1120px,calc(100% - 40px));margin-inline:auto}
+    /* Extra cosmic effects */
+    .cursor-glow{position:fixed;left:0;top:0;width:260px;height:260px;border-radius:50%;pointer-events:none;z-index:30;opacity:0;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(142,125,255,.13),rgba(255,215,139,.055) 32%,transparent 70%);mix-blend-mode:screen;transition:opacity .25s}
+    .shooting-stars{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:2;contain:strict}
+    .shooting-star{position:absolute;top:-12vh;left:var(--left);width:2px;height:var(--length,130px);opacity:0;transform:rotate(42deg);transform-origin:top center;background:linear-gradient(to bottom,rgba(255,244,207,0),rgba(255,225,153,.95) 45%,rgba(177,151,255,.8) 72%,transparent);filter:drop-shadow(0 0 5px #ffe4a3);animation:shoot var(--duration,1.5s) linear forwards}
+    .shooting-star:after{content:"";position:absolute;top:0;left:-2px;width:5px;height:5px;border-radius:50%;background:#fff4d3;box-shadow:0 0 10px 3px #ffdb8b}
+    .click-spark{position:fixed;z-index:50;pointer-events:none;color:#ffdf91;font-size:14px;text-shadow:0 0 12px #ffcf70;animation:clickSpark .8s ease-out forwards}
+    @keyframes shoot{0%{opacity:0;transform:translate3d(0,0,0) rotate(42deg)}8%{opacity:1}75%{opacity:.85}100%{opacity:0;transform:translate3d(-36vw,68vh,0) rotate(42deg)}}
+    @keyframes clickSpark{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(0)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.5) rotate(90deg)}}
+    @media (pointer:fine){body{cursor:default}.cursor-glow{opacity:.9}a,button{cursor:pointer}}
+    @media (pointer:coarse){.cursor-glow{display:none}}
     .nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(18px);background:rgba(7,8,23,.82);border-bottom:1px solid rgba(185,162,255,.12)}
     .nav-inner{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:20px}
     .brand{display:flex;align-items:center;gap:11px;font:700 1.02rem "Space Grotesk",sans-serif;letter-spacing:-.04em}.brand-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:13px;color:#090d25;background:linear-gradient(135deg,#667fff,#b18cff);box-shadow:0 0 25px #7f8eff40}
@@ -56,6 +66,7 @@
   </style>
 </head>
 <body>
+<div class="shooting-stars" id="shootingStars" aria-hidden="true"></div><div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
 <header class="nav"><div class="wrap nav-inner">
   <a class="brand" href="#home" aria-label="Bách Thiên - đầu trang"><span class="brand-mark">✦</span><span>Bách Thiên<span class="gradient">.</span></span></a>
   <button class="menu-btn" id="menuBtn" aria-label="Mở menu" aria-expanded="false">☰</button>
@@ -167,6 +178,35 @@
   menuBtn.addEventListener('click',()=>{const open=navLinks.classList.toggle('open');menuBtn.setAttribute('aria-expanded',String(open));menuBtn.textContent=open?'✕':'☰';});
   navLinks.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{navLinks.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');menuBtn.textContent='☰';}));
   document.getElementById('year').textContent=new Date().getFullYear();
+  // Soft cursor glow on desktop; keep it disabled for touch devices and reduced-motion users.
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const glow=document.getElementById('cursorGlow');
+  if(glow && window.matchMedia('(pointer: fine)').matches && !reduceMotion){
+    window.addEventListener('pointermove',e=>{glow.style.left=e.clientX+'px';glow.style.top=e.clientY+'px';},{passive:true});
+  }
+  // Random golden shooting stars, with a small cap to keep the page light.
+  const sky=document.getElementById('shootingStars');
+  if(sky && !reduceMotion){
+    const launchStar=()=>{
+      if(document.hidden || sky.childElementCount>3) return;
+      const star=document.createElement('span'); star.className='shooting-star';
+      star.style.setProperty('--left',(12+Math.random()*82)+'vw');
+      star.style.setProperty('--length',(75+Math.random()*105)+'px');
+      star.style.setProperty('--duration',(1.15+Math.random()*1.15)+'s');
+      sky.appendChild(star); star.addEventListener('animationend',()=>star.remove(),{once:true});
+    };
+    window.setTimeout(launchStar,900); window.setInterval(launchStar,2600);
+  }
+  // Tiny sparkles on click/tap, without blocking links or buttons.
+  if(!reduceMotion){document.addEventListener('click',e=>{
+    if(e.target.closest('a,button')) return;
+    const symbols=['✦','✧','⋆'];
+    for(let i=0;i<4;i++){
+      const s=document.createElement('span');s.className='click-spark';s.textContent=symbols[i%symbols.length];
+      s.style.left=e.clientX+'px';s.style.top=e.clientY+'px';s.style.setProperty('--dx',(Math.random()*70-35)+'px');s.style.setProperty('--dy',(Math.random()*70-35)+'px');
+      document.body.appendChild(s);s.addEventListener('animationend',()=>s.remove(),{once:true});
+    }
+  });}
   if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));}else{document.querySelectorAll('.reveal').forEach(el=>el.classList.add('visible'));}
 </script>
 </body>
